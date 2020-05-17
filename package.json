@@ -1,0 +1,16 @@
+{
+  "name": "svg-conversion",
+  "version": "1.0.0",
+  "description": "Convert svg files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@svgdotjs/svg.js": "^3.0.16",
+    "grunt": "^1.1.0",
+    "svg-modify": "0.0.12"
+  }
+}
