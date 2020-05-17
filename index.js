@@ -3,7 +3,14 @@ const grunt = require('grunt');
 
 const sources = grunt.file.expand('svg**/*.svg');
 
-function RGBToGrayscale(fill) {
+function getGrayscaleColor(fill) {
+    if (fill.startsWith('#') && fill.length === 7) {
+        return eightBitRGBToGrayscale(fill);
+    }
+    return fill;
+}
+
+function eightBitRGBToGrayscale(fill) {
     fill = fill.substr(1);
     const R = parseInt(Number(`0x${fill.substr(0, 2)}`, 16));
     const G = parseInt(Number(`0x${fill.substr(2, 2)}`, 16));
@@ -17,12 +24,20 @@ sources.forEach(filePath => {
     const fileName = path.basename(filePath);
     const svgFileContent = grunt.file.read(filePath);
     const fillRegExp = new RegExp('fill="(.*?)"', 'g');
+    const gradientRegExp = new RegExp('stop-color="(.*?)"', 'g');
+    let output = svgFileContent;
 
     let fillMatch = null;
-    let output = svgFileContent;
     while(fillMatch = fillRegExp.exec(output)) {
-        const grayScaleFill = RGBToGrayscale(fillMatch[1]);
-        output = output.replace(`fill="${fillMatch[1]}"`, `fill="${grayScaleFill}"`);
+        const newFill = getGrayscaleColor(fillMatch[1]);
+        output = output.replace(`fill="${fillMatch[1]}"`, `fill="${newFill}"`);
     }
+
+    let gradientMatch = null;
+    while(gradientMatch = gradientRegExp.exec(output)) {
+        const newGradient = getGrayscaleColor(gradientMatch[1]);
+        output = output.replace(`stop-color="${gradientMatch[1]}"`, `stop-color="${newGradient}"`);
+    }
+
     grunt.file.write(`out/${fileName}`, output);
 });
