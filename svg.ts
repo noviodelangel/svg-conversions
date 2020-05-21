@@ -20,22 +20,23 @@ const selectedNamedColors: Map<string, string> = new Map([
     ['silver', '#C0C0C0'],
     ['white', '#FFFFFF'],
 ]);
+const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
 
 /**
  * Converts given fill color into grayscale
  * @param fill - input color
  * @param fileName - file name for logging purposes (in case we want to know which files contain certain color encodings)
  */
-function getGrayscaleColor(fill: string, fileName?: string) {
+function getColorizedGrayscaleColor(fill: string, fileName?: string) {
     if (fill.startsWith('#')) {
         // if (fileName && fill.length == 4) console.log(`3-based-color=${fill} file=${fileName}`);
-        return rgbStringToGrayscale(fill);
+        return rgbStringToColorizedGrayscale(fill);
     }
     if (fill.startsWith('rgb(')) {
-        return rgbStringToGrayscale(fill);
+        return rgbStringToColorizedGrayscale(fill);
     }
     if (namedColors.includes(fill)) {
-        return namedColorToGrayscale(fill);
+        return namedColorToColorizedGrayscale(fill);
     }
     return fill;
 }
@@ -43,26 +44,27 @@ function getGrayscaleColor(fill: string, fileName?: string) {
 /**
  * @param fill - accepts both three based (e.g. #f06) and six based (e.g. #ff0066) hex format
  */
-function rgbStringToGrayscale(fill: string) {
+function rgbStringToColorizedGrayscale(fill: string) {
     const color: Color = new SVG.Color(fill);
     const grayScale = Math.round((0.3 * color.r) + (0.59 * color.g) + (0.11 * color.b));
     const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
-    return grayScaleColor.toHex();
+    const colorizedGrayScaleColor = new SVG.Color(colorizeColor.h, colorizeColor.s, grayScaleColor.hsl().l, 'hsl');
+    return colorizedGrayScaleColor.toHex();
 }
 
-function namedColorToGrayscale(fill: string) {
+function namedColorToColorizedGrayscale(fill: string) {
     if (!selectedNamedColors.get(fill)) {
         console.error(`Unknown color mapping for: ${fill}`);
         return fill;
     }
-    return rgbStringToGrayscale(selectedNamedColors.get(fill));
+    return rgbStringToColorizedGrayscale(selectedNamedColors.get(fill));
 }
 
 function processFill(output: string, fileName: string) {
     const fillRegExp: RegExp = new RegExp('fill="(.*?)"', 'g');
     let fillMatch: RegExpExecArray = null;
     while (fillMatch = fillRegExp.exec(output)) {
-        const newFill: string = getGrayscaleColor(fillMatch[1], fileName);
+        const newFill: string = getColorizedGrayscaleColor(fillMatch[1], fileName);
         output = output.replace(`fill="${fillMatch[1]}"`, `fill="${newFill}"`);
     }
     return output;
@@ -72,7 +74,7 @@ function processGradient(output: string, fileName: string) {
     const gradientRegExp: RegExp = new RegExp('stop-color="(.*?)"', 'g');
     let gradientMatch: RegExpExecArray = null;
     while (gradientMatch = gradientRegExp.exec(output)) {
-        const newGradient: string = getGrayscaleColor(gradientMatch[1], fileName);
+        const newGradient: string = getColorizedGrayscaleColor(gradientMatch[1], fileName);
         output = output.replace(`stop-color="${gradientMatch[1]}"`, `stop-color="${newGradient}"`);
     }
     return output;
@@ -82,7 +84,7 @@ function processStyles(output: string, fileName: string) {
     const styleRegExp: RegExp = new RegExp('fill:\\s*(.*?);', 'g');
     let styleMatch: RegExpExecArray = null;
     while (styleMatch = styleRegExp.exec(output)) {
-        const newStyle: string = getGrayscaleColor(styleMatch[1], fileName);
+        const newStyle: string = getColorizedGrayscaleColor(styleMatch[1], fileName);
         // output = output.replace(new RegExp(`fill:\\s*${styleMatch[1]}`), `fill:${newStyle}`); -> this was not working for codelyzer.svg, not sure why. Applying following workaround:
         output = output.replace(`fill: ${styleMatch[1]}`, `fill:${newStyle}`);
         output = output.replace(`fill:${styleMatch[1]}`, `fill:${newStyle}`);
