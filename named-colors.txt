@@ -1,3 +1,4 @@
+currentColor
 aliceblue
 antiquewhite
 aqua

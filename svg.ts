@@ -9,6 +9,7 @@ const outputFolder = 'out';
 const sources = grunt.file.expand(`${inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
 const selectedNamedColors: Map<string, string> = new Map([
+    ['currentColor', '#000000'],
     ['black', '#000000'],
     ['gold', '#FFD700'],
     ['gray', '#808080'],
