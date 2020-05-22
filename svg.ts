@@ -7,8 +7,9 @@ const inputFolder = 'svg';
 const outputFolder = 'out';
 const sources = grunt.file.expand(`${inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
+const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
 const selectedNamedColors: Map<string, string> = new Map([
-    ['currentColor', '#000000'],
+    ['currentColor', colorizeColor.rgb().toHex()],
     ['black', '#000000'],
     ['gold', '#FFD700'],
     ['gray', '#808080'],
@@ -19,45 +20,42 @@ const selectedNamedColors: Map<string, string> = new Map([
     ['silver', '#C0C0C0'],
     ['white', '#FFFFFF'],
 ]);
-const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
 
 /**
- * Converts given color into grayscale
+ * Colorizes picture using current colorize color
  * @param color - input color
  * @param fileName - file name for logging purposes (in case we want to know which files contain certain color encodings)
  */
-function getColorizedGrayscaleColor(color: string, fileName?: string) {
+function getColorizedColor(color: string, fileName?: string) {
     if (namedColors.includes(color)) {
-        return namedColorToColorizedGrayscale(color);
+        return colorizeNamedColor(color);
     }
-    return rgbStringToColorizedGrayscale(color);
+    return colorizeRgbString(color);
 }
 
 /**
  * @param inputColor - accepts three based (e.g. #f06), six based (e.g. #ff0066) hex format, RGB function string (e.g. rgb(211,56,51))
  */
-function rgbStringToColorizedGrayscale(inputColor: string) {
+function colorizeRgbString(inputColor: string) {
     const color: Color = new SVG.Color(inputColor);
-    const grayScale = Math.round((0.3 * color.r) + (0.59 * color.g) + (0.11 * color.b));
-    const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
-    const colorizedGrayScaleColor = new SVG.Color(colorizeColor.h, colorizeColor.s, grayScaleColor.hsl().l, 'hsl');
-    return colorizedGrayScaleColor.toHex();
+    const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, color.hsl().l, 'hsl');
+    return colorizedColor.toHex();
 }
 
-function namedColorToColorizedGrayscale(color: string) {
+function colorizeNamedColor(color: string) {
     if (!selectedNamedColors.get(color)) {
         console.error(`Unknown color mapping for: ${color}`);
         return color;
     }
-    return rgbStringToColorizedGrayscale(selectedNamedColors.get(color));
+    return colorizeRgbString(selectedNamedColors.get(color));
 }
 
 function processImage(output: string, fileName: string) {
-    const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).join('|');
-    const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-Fa-f]{3,6}|rgb\\(.*?\\)`, 'g');
+    const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
+    const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
     let match: RegExpExecArray = null;
     while (match = regExp.exec(output)) {
-        const newValue: string = getColorizedGrayscaleColor(match[0], fileName);
+        const newValue: string = getColorizedColor(match[0], fileName);
         output = output.replace(match[0], newValue);
     }
     return output;
@@ -71,7 +69,6 @@ function getRelativeFolderPath(filePath) {
     }
     return relativeOutputPath;
 }
-
 
 sources.forEach(filePath => {
     const fileName: string = path.basename(filePath);
