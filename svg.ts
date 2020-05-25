@@ -33,12 +33,27 @@ function getColorizedColor(color: string, fileName?: string) {
     return colorizeRgbString(color);
 }
 
+function scaleLightness(primaryLightness: number, currentLightness: number, tolerance: number) {
+    const lowerLightnessBoundary: number = (1 - tolerance) * primaryLightness;
+    const upperLightnessBoundary: number = (1 + tolerance) * primaryLightness;
+    if (currentLightness >= lowerLightnessBoundary && currentLightness <= upperLightnessBoundary) {
+        return currentLightness;
+    }
+    if (currentLightness < primaryLightness) {
+        return lowerLightnessBoundary;
+    }
+    if (currentLightness > primaryLightness) {
+        return upperLightnessBoundary;
+    }
+}
+
 /**
  * @param inputColor - accepts three based (e.g. #f06), six based (e.g. #ff0066) hex format, RGB function string (e.g. rgb(211,56,51))
  */
 function colorizeRgbString(inputColor: string) {
     const color: Color = new SVG.Color(inputColor);
-    const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, color.hsl().l, 'hsl');
+    const lightness: number = scaleLightness(colorizeColor.l, color.hsl().l, 0.99);
+    const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
     return colorizedColor.toHex();
 }
 
