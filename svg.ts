@@ -21,6 +21,10 @@ class Boundaries {
         this.calculateRange();
     }
 
+    public contains(other: Boundaries) {
+        return other.low >= this.low && other.high <= this.high
+    }
+
     private calculateRange() {
         this.range = this.high - this.low;
     }
@@ -139,21 +143,19 @@ function processImage(output: string, fileName: string) {
     }
 
     hslColorsFromSvg.sort((a, b) => a.l - b.l);
-    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.2);
+    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
     console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
     let svgLightnessBoundaries: Boundaries =  getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
     console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
     // svgLightnessBoundaries = adjustBoundaries(primaryLightnessBoundaries, svgLightnessBoundaries); // -> adjusting boundaries may be a bit tricky in further calculations
 
-    hslColorsFromSvg.forEach((color, index) => {
-        console.log(`[${fileName}] Lightness before: ${color.l}`);
+    return output.replace(regExp, (match) => {
+        const color = getHSLColor(match);
         const scaledLightness = scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
-        console.log(`[${fileName}] Lightness after: ${scaledLightness}`);
-        const newValue: string = getColorizedColorWithLightness(colorizeColor, scaledLightness);
-        output = output.replace(matches[index], newValue);
+        const scaledColor: string = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
+        console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor} with lightness=${scaledLightness}`);
+        return scaledColor;
     });
-
-    return output;
 }
 
 function getRelativeFolderPath(filePath) {
