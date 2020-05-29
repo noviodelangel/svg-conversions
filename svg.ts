@@ -30,11 +30,35 @@ class Boundaries {
     }
 }
 
-const inputFolder = 'svg';
-const outputFolder = 'out';
-const sources = grunt.file.expand(`${inputFolder}/**/*.svg`);
+// default config
+let config = {
+    inputFolder: 'svg',
+    outputFolder: 'out',
+    primaryColor: '#00acc1',
+    tolerance: 0.2,
+    expandLightnessRange: false
+}
+
+// override default config
+if (process.argv[2]) {
+    config.inputFolder = process.argv[2];
+}
+if (process.argv[3]) {
+    config.outputFolder = process.argv[3];
+}
+if (process.argv[4]) {
+    config.primaryColor = process.argv[4];
+}
+if (process.argv[5]) {
+    config.tolerance = Number(process.argv[5]);
+}
+if (process.argv[6]) {
+    config.expandLightnessRange = Boolean(process.argv[6]);
+}
+
+const sources = grunt.file.expand(`${config.inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
-const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
+const colorizeColor: Color = new SVG.Color(config.primaryColor).hsl();
 const selectedNamedColors: Map<string, string> = new Map([
     ['currentColor', colorizeColor.rgb().toHex()],
     ['black', '#000000'],
@@ -87,7 +111,7 @@ function scaleLightness(primaryLightness: number, currentLightness: number, tole
 }
 
 function scaleLightnessWithReference(referenceBoundaries: Boundaries, boundaries: Boundaries, color: SVG.Color): number {
-    if (boundaries.range == 0) { // if svg has only one color then boundaries point to the same lightness and distance is 0 so I just set lightness to primaryColorLightness
+    if (boundaries.range == 0) { // if svg has only one color then boundaries point to the same lightness and range is 0 so I just set lightness to primaryColorLightness
         return colorizeColor.l;
     }
 
@@ -158,22 +182,17 @@ function processImage(output: string, fileName: string) {
     });
 }
 
-function getRelativeFolderPath(filePath) {
-    let relativeOutputPath: string = '';
-    const pathArray = filePath.split(path.sep);
-    for (let i = 1; i < pathArray.length - 1; i++) {
-        relativeOutputPath = relativeOutputPath + path.sep + pathArray[i];
-    }
-    return relativeOutputPath;
+function getOutputPath(filePath: string, inputBaseFolder: string, outputBaseFolder: string) {
+    return `${outputBaseFolder}${filePath.replace(inputBaseFolder, '')}`;
 }
 
 sources.forEach(filePath => {
     const fileName: string = path.basename(filePath);
-    const fileFolder: string = getRelativeFolderPath(filePath);
+    const outputPath: string = getOutputPath(filePath, config.inputFolder, config.outputFolder);
     const svgFileContent: string = grunt.file.read(filePath);
     let output: string = svgFileContent;
 
     output = processImage(output, fileName);
 
-    grunt.file.write(`${outputFolder}${fileFolder}/${fileName}`, output);
+    grunt.file.write(outputPath, output);
 });
