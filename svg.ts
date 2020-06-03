@@ -56,6 +56,10 @@ if (process.argv[6]) {
     config.expandLightnessRange = Boolean(process.argv[6]);
 }
 
+// in case paths are relative
+config.inputFolder = path.resolve(config.inputFolder);
+config.outputFolder = path.resolve(config.outputFolder);
+
 const sources = grunt.file.expand(`${config.inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
 const colorizeColor: Color = new SVG.Color(config.primaryColor).hsl();
@@ -151,27 +155,36 @@ function adjustBoundaries(referenceBoundaries: Boundaries, boundaries: Boundarie
     return boundaries;
 }
 
-function processImage(output: string, fileName: string) {
-    const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
-    const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
-    let match: RegExpExecArray = null;
-    const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
+function examineSvgColors(match: RegExpExecArray, regExp: RegExp, output: string, hslColorsFromSvg: Array<SVG.Color>) {
     const matches: Array<string> = new Array<string>();
     while (match = regExp.exec(output)) {
         hslColorsFromSvg.push(getHSLColor(match[0]));
         matches.push(match[0]);
     }
+    return matches;
+}
+
+function calculateBoundaries(hslColorsFromSvg: Array<SVG.Color>, fileName: string) {
+    hslColorsFromSvg.sort((a, b) => a.l - b.l);
+    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
+    console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
+    let svgLightnessBoundaries: Boundaries = getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
+    console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
+    return {primaryLightnessBoundaries, svgLightnessBoundaries};
+}
+
+function processImage(output: string, fileName: string) {
+    const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
+    const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
+    let match: RegExpExecArray = null;
+    const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
+    const matches: Array<string> = examineSvgColors(match, regExp, output, hslColorsFromSvg);
 
     if (matches.length == 0) {
         return output;
     }
 
-    hslColorsFromSvg.sort((a, b) => a.l - b.l);
-    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
-    console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
-    let svgLightnessBoundaries: Boundaries =  getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
-    console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
-    // svgLightnessBoundaries = adjustBoundaries(primaryLightnessBoundaries, svgLightnessBoundaries); // -> adjusting boundaries may be a bit tricky in further calculations
+    let {primaryLightnessBoundaries, svgLightnessBoundaries} = calculateBoundaries(hslColorsFromSvg, fileName);
 
     return output.replace(regExp, (match) => {
         const color = getHSLColor(match);
