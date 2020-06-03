@@ -12,7 +12,7 @@ Arguments:
 |----------------------- | ---------------------------------------------------------------------- | ------------------ |
 | <input_dir>            | directory with source svg                                              | svg                |
 | <output_dir>           | directory to place converted svg (perserves the folder structure)      | out                |
-| <primary_color>        | primary color used as colorize base (eg. `#AC45DF`)                    | #00ACC1            |
+| <primary_color>        | primary color used as colorize base (eg. `"#AC45DF"`)                  | #00ACC1            |
 | <tolerance>            | range relative to primary color lightness to which svg will be scalled | 0.2                |
 | <expandLightnessRange> | TBD                                                                    | true               |
 

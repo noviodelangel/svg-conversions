@@ -93,11 +93,18 @@ function getColorizedColorWithLightness(colorizeColor: Color, lightness: number)
     return colorizedColor.toHex();
 }
 
-function getHSLColor(color: string) {
+function getHSLGrayscaleColor(color: string) {
     if (namedColors.includes(color)) {
-        return new SVG.Color(selectedNamedColors.get(color)).hsl();
+        return new SVG.Color(toGrayscale(selectedNamedColors.get(color))).hsl();
     }
-    return new SVG.Color(color).hsl();
+    return new SVG.Color(toGrayscale(color)).hsl();
+}
+
+function toGrayscale(color: string) {
+    const svgColor: Color = new SVG.Color(color);
+    const grayScale = Math.round((0.3 * svgColor.r) + (0.59 * svgColor.g) + (0.11 * svgColor.b));
+    const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
+    return grayScaleColor.toHex();
 }
 
 function scaleLightness(primaryLightness: number, currentLightness: number, tolerance: number) {
@@ -128,7 +135,7 @@ function scaleLightnessWithReference(referenceBoundaries: Boundaries, boundaries
  */
 function colorizeRgbString(inputColor: string) {
     const color: Color = new SVG.Color(inputColor);
-    const lightness: number = scaleLightness(colorizeColor.l, color.hsl().l, 0.99);
+    const lightness: number = scaleLightness(colorizeColor.l, color.hsl().l, config.tolerance);
     const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
     return colorizedColor.toHex();
 }
@@ -158,7 +165,7 @@ function adjustBoundaries(referenceBoundaries: Boundaries, boundaries: Boundarie
 function examineSvgColors(match: RegExpExecArray, regExp: RegExp, output: string, hslColorsFromSvg: Array<SVG.Color>) {
     const matches: Array<string> = new Array<string>();
     while (match = regExp.exec(output)) {
-        hslColorsFromSvg.push(getHSLColor(match[0]));
+        hslColorsFromSvg.push(getHSLGrayscaleColor(match[0]));
         matches.push(match[0]);
     }
     return matches;
@@ -166,7 +173,7 @@ function examineSvgColors(match: RegExpExecArray, regExp: RegExp, output: string
 
 function calculateBoundaries(hslColorsFromSvg: Array<SVG.Color>, fileName: string) {
     hslColorsFromSvg.sort((a, b) => a.l - b.l);
-    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
+    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, config.tolerance);
     console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
     let svgLightnessBoundaries: Boundaries = getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
     console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
@@ -187,7 +194,7 @@ function processImage(output: string, fileName: string) {
     let {primaryLightnessBoundaries, svgLightnessBoundaries} = calculateBoundaries(hslColorsFromSvg, fileName);
 
     return output.replace(regExp, (match) => {
-        const color = getHSLColor(match);
+        const color = getHSLGrayscaleColor(match);
         const scaledLightness = scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
         const scaledColor: string = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
         console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor} with lightness=${scaledLightness}`);
