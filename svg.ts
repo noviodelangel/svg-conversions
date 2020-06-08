@@ -72,6 +72,13 @@ const selectedNamedColors: Map<string, string> = new Map([
     ['white', '#FFFFFF'],
 ]);
 
+const COLOR_COUNT = 255;
+const MAX_LIGHTNESS_VALUE = 100;
+const colorLightnessBase: Array<number> = [];
+Array.from(Array(COLOR_COUNT + 1).keys()).forEach((i) => {
+    colorLightnessBase.push(i * (MAX_LIGHTNESS_VALUE / COLOR_COUNT));
+});
+
 /**
  * Colorizes picture using current colorize color
  * @param color - input color
@@ -85,8 +92,7 @@ function getColorizedColor(color: string, fileName?: string) {
 }
 
 function getColorizedColorWithLightness(colorizeColor: Color, lightness: number) {
-    const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
-    return colorizedColor.toHex();
+    return new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
 }
 
 function getHSLGrayscaleColor(color: string) {
@@ -176,6 +182,18 @@ function calculateBoundaries(hslColorsFromSvg: Array<SVG.Color>, fileName: strin
     return {primaryLightnessBoundaries, svgLightnessBoundaries};
 }
 
+function calculateNormalizedIndex(lightness) {
+    return Math.round((lightness / MAX_LIGHTNESS_VALUE) * COLOR_COUNT);
+}
+
+function getNormalizedColor(color: SVG.Color) {
+    return new SVG.Color(color.h, color.s, colorLightnessBase[calculateNormalizedIndex(color.l)], 'hsl');
+}
+
+function generateCssVarName(normalizedColor: SVG.Color) {
+    return `--primary-l-${calculateNormalizedIndex(normalizedColor.l)}`;
+}
+
 function processImage(output: string, fileName: string) {
     const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
     const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
@@ -192,10 +210,20 @@ function processImage(output: string, fileName: string) {
     return output.replace(regExp, (match) => {
         const color = getHSLGrayscaleColor(match);
         const scaledLightness = scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
-        const scaledColor: string = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
-        console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor} with lightness=${scaledLightness}`);
-        return scaledColor;
+        const scaledColor: SVG.Color = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
+        const normalizedColor: SVG.Color = getNormalizedColor(scaledColor);
+        console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${calculateNormalizedIndex(normalizedColor.l)}`);
+        return `var(${generateCssVarName(normalizedColor)})`;
     });
+}
+
+function generateColorMap() {
+    let output: string = 'html\n';
+    colorLightnessBase.forEach(lightness => {
+        const color: SVG.Color = new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
+        output += `\t${generateCssVarName(color)}: ${color.toRgb()}\n`
+    });
+    return output;
 }
 
 function getOutputPath(filePath: string, inputBaseFolder: string, outputBaseFolder: string) {
@@ -212,3 +240,5 @@ sources.forEach(filePath => {
 
     grunt.file.write(outputPath, output);
 });
+
+grunt.file.write(`${config.outputFolder}/color_map.sass`, generateColorMap());
