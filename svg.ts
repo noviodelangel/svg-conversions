@@ -36,7 +36,6 @@ let config = {
     outputFolder: 'out',
     primaryColor: '#00acc1',
     tolerance: 0.2,
-    expandLightnessRange: false
 }
 
 // override default config
@@ -51,9 +50,6 @@ if (process.argv[4]) {
 }
 if (process.argv[5]) {
     config.tolerance = Number(process.argv[5]);
-}
-if (process.argv[6]) {
-    config.expandLightnessRange = Boolean(process.argv[6]);
 }
 
 // in case paths are relative
