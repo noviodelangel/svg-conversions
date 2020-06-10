@@ -16,3 +16,14 @@ Arguments:
 | <tolerance>            | range relative to primary color lightness to which svg will be scalled | 0.2                |
 
 Your result files are in `out` directory.
+
+# Troubleshooting
+## Color mapping error
+If you get the following error:
+```
+Unknown color mapping for: green
+```
+this means that your input SVG set contains some color mappings that are undefined in the program.
+
+If that happens, simply add a correct RBG HEX mapping to `selectedNamedColors` map in `src/SvgProcessor.ts` class and rerun the script
+``

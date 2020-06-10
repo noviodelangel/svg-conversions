@@ -1,9 +1,0 @@
-black
-gold
-gray
-green
-orange
-purple
-red
-silver
-white
