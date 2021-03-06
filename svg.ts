@@ -31,10 +31,13 @@ class Boundaries {
 }
 
 const inputFolder = 'svg';
+
 const outputFolder = 'out';
 const sources = grunt.file.expand(`${inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
-const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
+const colorizeColor: Color = new SVG.Color('#ff7000').hsl();
+// const colorizeColor: Color = new SVG.Color('#9B5D39').hsl();
+// const colorizeColor: Color = new SVG.Color('#b14121').hsl();
 const selectedNamedColors: Map<string, string> = new Map([
     ['currentColor', colorizeColor.rgb().toHex()],
     ['black', '#000000'],
@@ -143,7 +146,7 @@ function processImage(output: string, fileName: string) {
     }
 
     hslColorsFromSvg.sort((a, b) => a.l - b.l);
-    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
+    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.2);
     console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
     let svgLightnessBoundaries: Boundaries =  getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
     console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
