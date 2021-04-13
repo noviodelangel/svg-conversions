@@ -86,11 +86,30 @@ export class SvgProcessor {
         return new SVG.Color(this.toGrayscale(color)).hsl();
     }
 
-    private toGrayscale(color: string) {
+    private toGrayscale(inputColor: string) {
+        const color = this.isPercentageRGB(inputColor) ? this.convertPercentageRGBtoNumeric(inputColor) : inputColor;
         const svgColor: Color = new SVG.Color(color);
         const grayScale = Math.round((0.3 * svgColor.r) + (0.59 * svgColor.g) + (0.11 * svgColor.b));
         const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
         return grayScaleColor.toHex();
+    }
+
+    private isPercentageRGB(inputColor: string): boolean {
+        return inputColor.indexOf("%") !== -1;
+    }
+
+    private convertPercentageRGBtoNumeric(inputColor: string): string {
+        const rgbRegExp = new RegExp(/rgb\((.*)\)/, "g");
+        const rgbString = rgbRegExp.exec(inputColor)[1];
+        const rgbPercentageArray = rgbString.replace(new RegExp('%', 'g'), '').split(',');
+        const rgbArray = rgbPercentageArray.map(percentageColorRepresentation => this.percentageToNumeric(percentageColorRepresentation));
+        console.log(`converting ${rgbString} to ${rgbArray[0]},${rgbArray[1]},${rgbArray[2]}`);
+        return `rgb(${rgbArray[0]},${rgbArray[1]},${rgbArray[2]})`;
+    }
+
+    private percentageToNumeric(percentage: string) {
+        const percentageNumber = parseFloat(percentage);
+        return Math.round((percentageNumber / 100) * 255);
     }
 
     private scaleLightness(primaryLightness: number, currentLightness: number, tolerance: number) {
