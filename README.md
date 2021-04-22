@@ -8,12 +8,13 @@ Execute command `npm start <input_dir> <output_dir> <primary_color> <tolerance>`
 
 Arguments:
 
-| argument               | value                                                                  | default value      |
-|----------------------- | ---------------------------------------------------------------------- | ------------------ |
-| <input_dir>            | directory with source svg                                              | svg                |
-| <output_dir>           | directory to place converted svg (perserves the folder structure)      | out                |
-| <primary_color>        | primary color used as colorize base (eg. `"#AC45DF"`)                  | #00ACC1            |
-| <tolerance>            | range relative to primary color lightness to which svg will be scalled | 0.2                |
+| argument               | value                                                                      | default value      |
+|----------------------- | -------------------------------------------------------------------------- | ------------------ |
+| input_dir              | directory with source svg                                                  | `svg`              |
+| output_dir             | directory to place converted svg (preserves the folder structure)          | `out`              |
+| primary_color          | primary color used as colorize base (eg. `"#AC45DF"`)                      | `#00ACC1`          |
+| tolerance              | range relative to primary color lightness to which svg will be scaled      | `0.2`              |
+| output_mode            | determines if the output colors should be expressed as `rgb` `or css_vars` | `rgb`              |
 
 Your result files are in `out` directory.
 

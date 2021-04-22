@@ -19,6 +19,9 @@ if (process.argv[4]) {
 if (process.argv[5]) {
     config.tolerance = Number(process.argv[5]);
 }
+if (process.argv[6]) {
+    config.outputMode = process.argv[6];
+}
 
 // in case paths are relative
 config.inputFolder = path.resolve(config.inputFolder);
@@ -37,9 +40,11 @@ sources.forEach(filePath => {
     const svgFileContent: string = grunt.file.read(filePath);
     let output: string = svgFileContent;
 
-    output = svgProcessor.processImage(output, fileName);
+    output = svgProcessor.processImage(output, fileName, config.outputMode);
 
     grunt.file.write(outputPath, output);
 });
 
-grunt.file.write(`${config.outputFolder}/color_map.sass`, svgProcessor.generateColorMap());
+if (config.outputMode === 'css_vars') {
+    grunt.file.write(`${config.outputFolder}/color_map.sass`, svgProcessor.generateColorMap());
+}
