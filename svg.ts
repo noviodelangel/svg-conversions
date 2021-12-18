@@ -37,6 +37,7 @@ class Boundaries {
 }
 
 const inputFolder = '../InnoTopicWebsite/src/assets/images/logos';
+// const outputFolder = '../InnoTopicWebsite/src/assets/images/logos-l';
 
 // const outputFolder = '..';
 const outputFolder = 'out';
@@ -189,5 +190,8 @@ sources.forEach(filePath => {
 
     output = processImage(output, fileName);
 
-    grunt.file.write(`${outputFolder}${fileFolder}/${fileName}`, output);
+    let outputFilePath = `${outputFolder}${fileFolder}/${fileName}`;
+    outputFilePath = outputFilePath.replace('out/InnoTopicWebsite/src/assets/images/logos/', '../InnoTopicWebsite/src/assets/images/logos-l/logos/')
+    console.log('path', outputFilePath)
+    grunt.file.write(outputFilePath, output);
 });
