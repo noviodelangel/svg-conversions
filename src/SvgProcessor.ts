@@ -35,7 +35,7 @@ export class SvgProcessor {
         const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
         let match: RegExpExecArray = null;
         const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
-        const matches: Array<string> = this.examineSvgColors(match, regExp, output, hslColorsFromSvg);
+        const matches: Array<string> = this.getSvgColors(match, regExp, output, hslColorsFromSvg);
 
         if (matches.length == 0) {
             return output;
@@ -48,7 +48,7 @@ export class SvgProcessor {
             const scaledLightness = this.scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
             const scaledColor: SVG.Color = this.getColorizedColorWithLightness(this.colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
             const normalizedColor: SVG.Color = this.getNormalizedColor(scaledColor);
-            console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
+            console.debug(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
             return outputMode === 'rgb' ? normalizedColor.toRgb() : `var(${this.generateCssVarName(normalizedColor)})`;
         });
     }
@@ -167,7 +167,8 @@ export class SvgProcessor {
         return boundaries;
     }
 
-    private examineSvgColors(match: RegExpExecArray, regExp: RegExp, output: string, hslColorsFromSvg: Array<SVG.Color>) {
+    private getSvgColors(match: RegExpExecArray, regExp: RegExp, output: string, hslColorsFromSvg: Array<SVG.Color>):
+            Array<string> {
         const matches: Array<string> = new Array<string>();
         while (match = regExp.exec(output)) {
             hslColorsFromSvg.push(this.getHSLGrayscaleColor(match[0]));
@@ -179,9 +180,9 @@ export class SvgProcessor {
     private calculateBoundaries(hslColorsFromSvg: Array<SVG.Color>, fileName: string) {
         hslColorsFromSvg.sort((a, b) => a.l - b.l);
         const primaryLightnessBoundaries: Boundaries = this.getLightnessBoundariesWithTolerance(this.colorizeColor, this.config.tolerance);
-        console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
+        console.debug(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
         let svgLightnessBoundaries: Boundaries = this.getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
-        console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
+        console.debug(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
         return {primaryLightnessBoundaries, svgLightnessBoundaries};
     }
 
