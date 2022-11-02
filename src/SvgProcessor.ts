@@ -188,7 +188,7 @@ export class SvgProcessor {
             imageColors.hslColorsFromSvg.push(hslGrayscaleColor);
             imageColors.matches.push(colorMatch);
         }
-        // console.log('colors count: ', imageColors.colorsSet.size)
+        console.log('colors count: ', imageColors.colorsSet.size)
         // console.log(imageColors.colorsSet)
         if ( imageColors.colorsSet.size === 3 ) {
             // console.log(colorsSet)
