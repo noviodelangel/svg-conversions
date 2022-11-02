@@ -3,6 +3,9 @@ import * as path from 'path';
 import {Config} from "./Config";
 import {SvgProcessor} from "./SvgProcessor";
 
+
+console.debug = () => {}
+
 // default config
 let config: Config = new Config();
 
@@ -34,9 +37,10 @@ function getOutputPath(filePath: string, inputBaseFolder: string, outputBaseFold
     return `${outputBaseFolder}${filePath.replace(inputBaseFolder, '')}`;
 }
 
-sources.forEach(filePath => {
+sources.forEach((filePath: any) => {
     const fileName: string = path.basename(filePath);
     const outputPath: string = getOutputPath(filePath, config.inputFolder, config.outputFolder);
+    console.log(outputPath)
     const svgFileContent: string = grunt.file.read(filePath);
     let output: string = svgFileContent;
 

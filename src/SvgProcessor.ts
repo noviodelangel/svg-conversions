@@ -34,10 +34,10 @@ export class SvgProcessor {
     public processImage(output: string, fileName: string, outputMode: string): string {
         const namedColorsRegExpString = Array.from(this.selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
         const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
-        let match: RegExpExecArray = null;
+        // let match: RegExpExecArray = null;
         // const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
         // const matches: Array<string> = this.getSvgColors(match, regExp, output, hslColorsFromSvg);
-        const imageColors = this.getSvgColors(match, regExp, output);
+        const imageColors = this.getSvgColors(regExp, output);
 
         if (imageColors.matches.length == 0) {
             // FIXME: it should be an error if there are no colors
@@ -85,8 +85,9 @@ export class SvgProcessor {
     }
 
     private getHSLGrayscaleColor(color: string) {
-        if (this.namedColors.includes(color)) {
-            return new SVG.Color(this.toGrayscale(this.selectedNamedColors.get(color))).hsl();
+        const namedColor = this.selectedNamedColors.get(color);
+        if (namedColor) {
+            return new SVG.Color(this.toGrayscale(namedColor)).hsl();
         }
         return new SVG.Color(this.toGrayscale(color)).hsl();
     }
@@ -105,7 +106,7 @@ export class SvgProcessor {
 
     private convertPercentageRGBtoNumeric(inputColor: string): string {
         const rgbRegExp = new RegExp(/rgb\((.*)\)/, "g");
-        const rgbString = rgbRegExp.exec(inputColor)[1];
+        const rgbString = rgbRegExp.exec(inputColor) ! [1];
         const rgbPercentageArray = rgbString.replace(new RegExp('%', 'g'), '').split(',');
         const rgbArray = rgbPercentageArray.map(percentageColorRepresentation => this.percentageToNumeric(percentageColorRepresentation));
         console.log(`converting ${rgbString} to ${rgbArray[0]},${rgbArray[1]},${rgbArray[2]}`);
@@ -129,6 +130,7 @@ export class SvgProcessor {
         if (currentLightness > primaryLightness) {
             return upperLightnessBoundary;
         }
+        throw new Error('Unknown scaleLightness case')
     }
 
     private scaleLightnessWithReference(referenceBoundaries: Boundaries, boundaries: Boundaries, color: SVG.Color): number {
@@ -151,11 +153,12 @@ export class SvgProcessor {
     }
 
     private colorizeNamedColor(color: string) {
-        if (!this.selectedNamedColors.get(color)) {
+        const namedColor = this.selectedNamedColors.get(color);
+        if (!namedColor) {
             console.error(`Unknown color mapping for: ${color}`);
             return color;
         }
-        return this.colorizeRgbString(this.selectedNamedColors.get(color));
+        return this.colorizeRgbString(namedColor);
     }
 
     private getLightnessBoundariesWithTolerance(color: Color, tolerance: number): Boundaries {
@@ -172,20 +175,21 @@ export class SvgProcessor {
         return boundaries;
     }
 
-    private getSvgColors(match: RegExpExecArray, regExp: RegExp, output: string)
+    private getSvgColors(regExp: RegExp, output: string)
             : ImageColors {
         const imageColors = new ImageColors()
+        let match: RegExpExecArray | null = null
         while (match = regExp.exec(output)) {
             const colorMatch = match[0];
-            console.log('colorMatch', colorMatch)
+            // console.log('colorMatch', colorMatch)
             const hslGrayscaleColor: Color = this.getHSLGrayscaleColor(colorMatch);
             imageColors.colorsSet.add(`${hslGrayscaleColor}`)
             // console.log('hslGrayscaleColor', hslGrayscaleColor)
             imageColors.hslColorsFromSvg.push(hslGrayscaleColor);
             imageColors.matches.push(colorMatch);
         }
-        console.log('colors count: ', imageColors.colorsSet.size)
-        console.log(imageColors.colorsSet)
+        // console.log('colors count: ', imageColors.colorsSet.size)
+        // console.log(imageColors.colorsSet)
         if ( imageColors.colorsSet.size === 3 ) {
             // console.log(colorsSet)
         }
@@ -202,7 +206,7 @@ export class SvgProcessor {
         return {primaryLightnessBoundaries, svgLightnessBoundaries};
     }
 
-    private calculateNormalizedIndex(lightness) {
+    private calculateNormalizedIndex(lightness: number) {
         return Math.round((lightness / this.MAX_LIGHTNESS_VALUE) * this.COLOR_COUNT);
     }
 

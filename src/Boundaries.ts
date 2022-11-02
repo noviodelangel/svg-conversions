@@ -1,5 +1,5 @@
 export class Boundaries {
-    public range: number;
+    public range!: number;
     constructor(public low: number,
                 public high: number) {
         this.calculateRange();
