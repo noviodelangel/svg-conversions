@@ -3,8 +3,18 @@ import * as path from 'path';
 import * as SVG from '@svgdotjs/svg.js';
 import {Color} from "@svgdotjs/svg.js";
 
+const preset = {
+    // tolerance: 0.3,
+    // tolerance: 0.2,
+    tolerance: 0.4, // 0.25,
+    // colorizeColor: '#ff7000',
+    colorizeColor: '#ff9d4e',
+    inputPath: 'out/InnoTopicWebsite/src/assets/images/logos/',
+    outputPath: '../InnoTopicWebsite/src/assets/images/logos-l/logos/',
+}
 
 class Boundaries {
+    /* FIXME: rename to diff/delta/spread */
     public range: number;
     constructor(public low: number,
                 public high: number) {
@@ -30,11 +40,16 @@ class Boundaries {
     }
 }
 
-const inputFolder = 'svg';
+const inputFolder = '../InnoTopicWebsite/src/assets/images/logos';
+// const outputFolder = '../InnoTopicWebsite/src/assets/images/logos-l';
+
+// const outputFolder = '..';
 const outputFolder = 'out';
 const sources = grunt.file.expand(`${inputFolder}/**/*.svg`);
 const namedColors: Array<string> = grunt.file.read('named-colors.txt').split('\n');
-const colorizeColor: Color = new SVG.Color('#00acc1').hsl();
+const colorizeColor: Color = new SVG.Color(preset.colorizeColor).hsl();
+// const colorizeColor: Color = new SVG.Color('#9B5D39').hsl();
+// const colorizeColor: Color = new SVG.Color('#b14121').hsl();
 const selectedNamedColors: Map<string, string> = new Map([
     ['currentColor', colorizeColor.rgb().toHex()],
     ['black', '#000000'],
@@ -72,6 +87,7 @@ function getHSLColor(color: string) {
     return new SVG.Color(color).hsl();
 }
 
+/* FIXME: rename tolerance - more like contrast */
 function scaleLightness(primaryLightness: number, currentLightness: number, tolerance: number) {
     const lowerLightnessBoundary: number = (1 - tolerance) * primaryLightness;
     const upperLightnessBoundary: number = (1 + tolerance) * primaryLightness;
@@ -100,7 +116,7 @@ function scaleLightnessWithReference(referenceBoundaries: Boundaries, boundaries
  */
 function colorizeRgbString(inputColor: string) {
     const color: Color = new SVG.Color(inputColor);
-    const lightness: number = scaleLightness(colorizeColor.l, color.hsl().l, 0.99);
+    const lightness: number = scaleLightness(colorizeColor.l, color.hsl().l, 0.99 /* FIXME: extract to preset? */);
     const colorizedColor = new SVG.Color(colorizeColor.h, colorizeColor.s, lightness, 'hsl');
     return colorizedColor.toHex();
 }
@@ -128,34 +144,43 @@ function adjustBoundaries(referenceBoundaries: Boundaries, boundaries: Boundarie
 }
 
 function processImage(output: string, fileName: string) {
-    const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
-    const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
-    let match: RegExpExecArray = null;
-    const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
-    const matches: Array<string> = new Array<string>();
-    while (match = regExp.exec(output)) {
-        hslColorsFromSvg.push(getHSLColor(match[0]));
-        matches.push(match[0]);
+    try {
+        const namedColorsRegExpString = Array.from(selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
+        const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
+        let match: RegExpExecArray = null;
+        const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
+        const matches: Array<string> = new Array<string>();
+        while (match = regExp.exec(output)) {
+            hslColorsFromSvg.push(getHSLColor(match[0]));
+            matches.push(match[0]);
+        } // TODO: remove duplicates (to be able to count if 1/2/3 or ODD/EVEN amount of colors to spread around central color / min/max)
+
+        if (matches.length == 0) {
+            return output;
+        }
+
+        console.log('colors count: ', hslColorsFromSvg.length/*, hslColorsFromSvg*/)
+
+        hslColorsFromSvg.sort((a, b) => a.l - b.l);
+
+        // TODO: keep in mind that especially this part should run in the browser for re-colorizing via css vars:
+        const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, preset.tolerance);
+        // console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
+        let svgLightnessBoundaries: Boundaries =  getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg); // TODO: here are the min and max lightness -> should check if 1 to colors and normalize to central color or min/max
+        // console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
+        // svgLightnessBoundaries = adjustBoundaries(primaryLightnessBoundaries, svgLightnessBoundaries); // -> adjusting boundaries may be a bit tricky in further calculations
+
+        return output.replace(regExp, (match) => {
+            const color = getHSLColor(match);
+            const scaledLightness = scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
+            const scaledColor: string = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
+            // console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor} with lightness=${scaledLightness}`);
+            return scaledColor;
+        });
+    } catch (x) {
+        // FIXME: error count
+        console.error(`!! ERROR processing file ` + fileName, x)
     }
-
-    if (matches.length == 0) {
-        return output;
-    }
-
-    hslColorsFromSvg.sort((a, b) => a.l - b.l);
-    const primaryLightnessBoundaries: Boundaries = getLightnessBoundariesWithTolerance(colorizeColor, 0.4);
-    console.log(`[${fileName}] Reference boundaries: [${primaryLightnessBoundaries.low}, ${primaryLightnessBoundaries.high}]`);
-    let svgLightnessBoundaries: Boundaries =  getLightnessBoundariesFromSortedColorArray(hslColorsFromSvg);
-    console.log(`[${fileName}] SVG boundaries: [${svgLightnessBoundaries.low}, ${svgLightnessBoundaries.high}]`);
-    // svgLightnessBoundaries = adjustBoundaries(primaryLightnessBoundaries, svgLightnessBoundaries); // -> adjusting boundaries may be a bit tricky in further calculations
-
-    return output.replace(regExp, (match) => {
-        const color = getHSLColor(match);
-        const scaledLightness = scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
-        const scaledColor: string = getColorizedColorWithLightness(colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
-        console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor} with lightness=${scaledLightness}`);
-        return scaledColor;
-    });
 }
 
 function getRelativeFolderPath(filePath) {
@@ -175,5 +200,10 @@ sources.forEach(filePath => {
 
     output = processImage(output, fileName);
 
-    grunt.file.write(`${outputFolder}${fileFolder}/${fileName}`, output);
+    let outputFilePath = `${outputFolder}${fileFolder}/${fileName}`;
+    outputFilePath = outputFilePath.replace(
+        preset.inputPath,
+        preset.outputPath)
+    console.log('path', outputFilePath)
+    grunt.file.write(outputFilePath, output);
 });
