@@ -93,11 +93,20 @@ export class SvgProcessor {
     }
 
     private toGrayscale(inputColor: string) {
-        const color = this.isPercentageRGB(inputColor) ? this.convertPercentageRGBtoNumeric(inputColor) : inputColor;
-        const svgColor: Color = new SVG.Color(color);
-        const grayScale = Math.round((0.3 * svgColor.r) + (0.59 * svgColor.g) + (0.11 * svgColor.b));
-        const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
-        return grayScaleColor.toHex();
+        inputColor = inputColor.toLowerCase() // against "Green"
+        if ( inputColor === "green") {
+            inputColor = "#00FF00" // against AWS color
+        }
+        try {
+            const color = this.isPercentageRGB(inputColor) ? this.convertPercentageRGBtoNumeric(inputColor) : inputColor;
+            const svgColor: Color = new SVG.Color(color);
+            const grayScale = Math.round((0.3 * svgColor.r) + (0.59 * svgColor.g) + (0.11 * svgColor.b));
+            const grayScaleColor: Color = new SVG.Color(grayScale, grayScale, grayScale, 'rgb');
+            return grayScaleColor.toHex();
+        } catch(e) {
+            console.error(`Error converting to grayscale: ${inputColor}`);
+            throw e
+        }
     }
 
     private isPercentageRGB(inputColor: string): boolean {

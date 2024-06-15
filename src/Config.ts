@@ -9,13 +9,17 @@ export class Config {
 
         // public primaryColor: string = '#77743b',
         // public primaryColor: string = '#808080',
-        public primaryColor: string = '#404040',
-        // public primaryColor: string = '#505050',
+        // public primaryColor: string = '#404040',
+
+        // public primaryColor: string = '#404040',
+        public primaryColor: string = '#BBBBBB',
 
         // public tolerance: number = 0.6,
         // public tolerance: number = 0.3,
         // public tolerance: number = 0.35,
-        public tolerance: number = 0.40,
+        /** contract */
+        // public tolerance: number = 0.90,
+        public tolerance: number = 0.090,
         public outputMode: string = 'rgb'
 
         // TODO separate preset for print and for web
