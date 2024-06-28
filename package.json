@@ -9,10 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@svgdotjs/svg.js": "^3.0.16",
+    "@svgdotjs/svg.js": "^3.2.0",
     "grunt": "^1.1.0",
     "svg-modify": "0.0.12",
-    "typescript": "^3.9.2"
+    "typescript": "5.4.5"
   },
   "devDependencies": {
     "@types/node": "^14.0.1"
