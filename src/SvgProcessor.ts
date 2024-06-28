@@ -30,7 +30,7 @@ export class SvgProcessor {
     private MAX_LIGHTNESS_VALUE = 100;
     private colorLightnessBase: Array<number> = [];
 
-    public processImage(output: string, fileName: string, outputMode: string): string {
+    public processImage(output: string, imageName: string, outputMode: string): string {
         const namedColorsRegExpString = Array.from(this.selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
         const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
         let match: RegExpExecArray = null;
@@ -41,14 +41,14 @@ export class SvgProcessor {
             return output;
         }
 
-        let {primaryLightnessBoundaries, svgLightnessBoundaries} = this.calculateBoundaries(hslColorsFromSvg, fileName);
+        let {primaryLightnessBoundaries, svgLightnessBoundaries} = this.calculateBoundaries(hslColorsFromSvg, imageName);
 
         return output.replace(regExp, (match) => {
             const color = this.getHSLGrayscaleColor(match);
             const scaledLightness = this.scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
             const scaledColor: SVG.Color = this.getColorizedColorWithLightness(this.colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
             const normalizedColor: SVG.Color = this.getNormalizedColor(scaledColor);
-            console.log(`[${fileName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
+            console.log(`[${imageName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
             return outputMode === 'rgb' ? normalizedColor.toRgb() : `var(${this.generateCssVarName(normalizedColor)})`;
         });
     }
