@@ -4,6 +4,7 @@
   "description": "Convert svg files",
   "main": "svg.ts",
   "scripts": {
+    "build": "tsc src/*.ts --outDir compiled/",
     "start": "tsc src/*.ts --outDir compiled/ && node compiled/main.js"
   },
   "author": "",

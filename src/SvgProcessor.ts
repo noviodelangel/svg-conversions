@@ -2,7 +2,7 @@ import {Config} from "./Config";
 import {Boundaries} from "./Boundaries";
 import * as SVG from '@svgdotjs/svg.js';
 import {Color} from "@svgdotjs/svg.js";
-import * as grunt from 'grunt';
+import {namedColors} from "./NamedColors";
 
 export class SvgProcessor {
     constructor(private config: Config) {
@@ -11,7 +11,6 @@ export class SvgProcessor {
         });
     }
 
-    private namedColors: Array<string> = grunt.file.read('data/named-colors.txt').split('\n');
     private colorizeColor: Color = new SVG.Color(this.config.primaryColor).hsl();
     private selectedNamedColors: Map<string, string> = new Map([
         ['currentColor', this.colorizeColor.rgb().toHex()],
@@ -30,25 +29,25 @@ export class SvgProcessor {
     private MAX_LIGHTNESS_VALUE = 100;
     private colorLightnessBase: Array<number> = [];
 
-    public processImage(output: string, imageName: string, outputMode: string): string {
+    public processImage(svgString: string, svgName: string, outputMode: string): string {
         const namedColorsRegExpString = Array.from(this.selectedNamedColors.keys()).map(word => `\\b${word}\\b`).join('|');
         const regExp: RegExp = new RegExp(`${namedColorsRegExpString}|#[0-9A-F]{3,6}|rgb\\(.*?\\)`, 'gi');
         let match: RegExpExecArray = null;
         const hslColorsFromSvg: Array<SVG.Color> = new Array<SVG.Color>();
-        const matches: Array<string> = this.examineSvgColors(match, regExp, output, hslColorsFromSvg);
+        const matches: Array<string> = this.examineSvgColors(match, regExp, svgString, hslColorsFromSvg);
 
         if (matches.length == 0) {
-            return output;
+            return svgString;
         }
 
-        let {primaryLightnessBoundaries, svgLightnessBoundaries} = this.calculateBoundaries(hslColorsFromSvg, imageName);
+        let {primaryLightnessBoundaries, svgLightnessBoundaries} = this.calculateBoundaries(hslColorsFromSvg, svgName);
 
-        return output.replace(regExp, (match) => {
+        return svgString.replace(regExp, (match) => {
             const color = this.getHSLGrayscaleColor(match);
             const scaledLightness = this.scaleLightnessWithReference(primaryLightnessBoundaries, svgLightnessBoundaries, color);
             const scaledColor: SVG.Color = this.getColorizedColorWithLightness(this.colorizeColor, (primaryLightnessBoundaries.contains(svgLightnessBoundaries)) ? color.l : scaledLightness);
             const normalizedColor: SVG.Color = this.getNormalizedColor(scaledColor);
-            console.log(`[${imageName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
+            console.log(`[${svgName}] changing color=${color.toHex()} with lightness=${color.l} to color=${scaledColor.toHex()} with lightness=${scaledColor.l} then normalized to color=${normalizedColor.toHex()} with lightness=${normalizedColor.l} and normalizedIndex=${this.calculateNormalizedIndex(normalizedColor.l)}`);
             return outputMode === 'rgb' ? normalizedColor.toRgb() : `var(${this.generateCssVarName(normalizedColor)})`;
         });
     }
@@ -69,7 +68,7 @@ export class SvgProcessor {
      * @param fileName - file name for logging purposes (in case we want to know which files contain certain color encodings)
      */
     private getColorizedColor(color: string, fileName?: string) {
-        if (this.namedColors.includes(color)) {
+        if (namedColors.includes(color)) {
             return this.colorizeNamedColor(color);
         }
         return this.colorizeRgbString(color);
@@ -80,7 +79,7 @@ export class SvgProcessor {
     }
 
     private getHSLGrayscaleColor(color: string) {
-        if (this.namedColors.includes(color)) {
+        if (namedColors.includes(color)) {
             return new SVG.Color(this.toGrayscale(this.selectedNamedColors.get(color))).hsl();
         }
         return new SVG.Color(this.toGrayscale(color)).hsl();
